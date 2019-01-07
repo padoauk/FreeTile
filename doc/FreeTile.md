@@ -3,7 +3,7 @@
 FreeTile is a layout framework on Vue.js. The main components of FreeTile
 are TileAera.vue and Tile.vue. On TileArea's region, each tile can be moved
 or re-sized by the normal mouse actions with a restriction that any tiles
-cannot overlap with each other.
+are placed on grid and cannot overlap with each other. 
 
 Tile is the class of elements placed on TileArea's area. Tile is composed
 of header, slot and footer. A Vue.js component can be inserted to the slot.
@@ -12,9 +12,9 @@ area, mouse interactions are not controlled by Tile or TileArea but by the
 slot component.
 
 ## Example
-Following the sample of DashBoard.vue. With the props, size of TileArea is
-gridWpx*gridColNum and height of gridHpx*gridRowNum. The event 'addTile' can
-be emitted to the TileAreaEventBus.
+Following, DashBoard.vue, is a sample of using FreeTile. With the props, size
+of TileArea is gridWpx times gridColNum and height of gridHpx times gridRowNum.
+The event 'addTile' can be emitted to the TileAreaEventBus.
 
 ### DashBoard.vue
 
