@@ -2,11 +2,8 @@
 ## Overview
 FreeTile is a layout framework on Vue.js. The main components of FreeTile
 are TileAera.vue and Tile.vue. On TileArea's region, each tile can be moved
-or resized by the normal mouse actions with a restriction that any tiles
+or re-sized by the normal mouse actions with a restriction that any tiles
 cannot overlap with each other.
-
-In area of TileArea, instances of Tile can be moved or re-sized with user's
-interaction with mouse provided that Tiles do not overlap with each other.
 
 Tile is the class of elements placed on TileArea's area. Tile is composed
 of header, slot and footer. A Vue.js component can be inserted to the slot.
