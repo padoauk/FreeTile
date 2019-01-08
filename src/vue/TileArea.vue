@@ -112,10 +112,10 @@
     
     computed: {
       width() {
-        return this.gridWpx * this.gridColNum;
+        return parseInt(this.gridWpx) * parseInt(this.gridColNum);
       },
       height() {
-        return this.gridHpx * this.gridRowNum;
+        return parseInt(this.gridHpx) * parseInt(this.gridRowNum);
       },
       styles() {
         return {
@@ -182,28 +182,32 @@
           return;
         }
 
+        const gw = parseInt(this.gridWpx);
+        const gh = parseInt(this.gridHpx);
+        const gc = parseInt(this.gridColNum);
+        const gr = parseInt(this.gridRowNum);
         // calculate colStart, colEnd, colSz, rowStart, rowEnd and rowSz
-        const cst = parseInt( pos.left / this.gridWpx ) + 1;
-        const rst = parseInt( pos.top  / this.gridHpx ) + 1;
+        const cst = parseInt( pos.left / gw ) + 1;
+        const rst = parseInt( pos.top  / gh ) + 1;
         // range of colStart is in [1 , gridColNum-2]
-        const colStart = (cst < 1) ? 1 : ((this.gridColNum < cst) ? this.gridColNum : cst);
+        const colStart = (cst < 1) ? 1 : ((gc < cst) ? gc : cst);
         // range of rowStart is in [1 , gridRowNum-2]
-        const rowStart = (rst < 1) ? 1 : ((this.gridRowNum < rst) ? this.gridRowNum : rst);
+        const rowStart = (rst < 1) ? 1 : ((gr < rst) ? gr : rst);
         
-        const csz = parseInt( pos.width / this.gridWpx );
-        const rsz = parseInt( pos.height / this.gridHpx );
-        const colEnd = (this.gridColNum < colStart + csz) ? this.gridColNum + 1 : colStart + csz;
-        const rowEnd = (this.gridRowNum < rowStart + rsz) ? this.gridRowNum + 1 : rowStart + rsz;
+        const csz = parseInt( pos.width / gw );
+        const rsz = parseInt( pos.height / gh );
+        const colEnd = (gc < colStart + csz) ? gc + 1 : colStart + csz;
+        const rowEnd = (gr < rowStart + rsz) ? gr + 1 : rowStart + rsz;
         const colSz = colEnd - colStart;
         const rowSz = rowEnd - rowStart;
 
-        tile.xsz_px = colSz * this.gridWpx;
-        tile.ysz_px = rowSz * this.gridHpx;
+        tile.xsz_px = colSz * gw;
+        tile.ysz_px = rowSz * gh;
         // notice: col and row start at 1
-        tile.pos.left = (colStart-1) * this.gridWpx;
-        tile.pos.top  = (rowStart-1) * this.gridHpx;
-        tile.pos.right  = (colEnd-1) * this.gridWpx;
-        tile.pos.bottom = (rowEnd-1) * this.gridHpx;
+        tile.pos.left = (colStart-1) * gw;
+        tile.pos.top  = (rowStart-1) * gh;
+        tile.pos.right  = (colEnd-1) * gw;
+        tile.pos.bottom = (rowEnd-1) * gh;
         tile.slot.xsz_px = tile.xsz_px;
         tile.slot.ysz_px = tile.ysz_px - tile.headerHeight - tile.footerHeight;
 
@@ -320,7 +324,7 @@
             }
           }
           const left = this.dragging.x - this.dragging.dx;
-          const top  = this.dragging.y - this.dragging.dy - this.gridHpx;
+          const top  = this.dragging.y - this.dragging.dy - parseInt(this.gridHpx);
           this.place(tile, {left: left, top: top});
         }
 
@@ -400,14 +404,15 @@
       },
       szChanged: function(o){
         return;
+        /*
         const tile = this.findTileByAreaId(o.tileAreaId);
         if(tile.headerHeight !== undefined){
           this.setTilePos(tile, o.width, o.height + tile.headerHeight);
         } else {
           this.setTilePos(tile, o.width, o.height);
         }
-
         return;
+        */
       },
       /**
        * @param {Object} o - { tileId: id, left: delta_left, top: delta_top, right: delta_top, bottom: delta_bottom }
@@ -472,14 +477,14 @@
       addTile: function(compName, pos, show){
         show = (show === undefined) ? true : show;
         // pos must fit inside of the TileArea
-        const maxX = this.gridWpx * this.gridColNum;
-        const maxY = this.gridHpx * this.gridRowNum;
+        const maxX = parseInt(this.gridWpx) * parseInt(this.gridColNum);
+        const maxY = parseInt(this.gridHpx) * parseInt(this.gridRowNum);
         pos = (pos !== undefined) ? pos : {};
         // keep left to fit
         if( pos.left === undefined || pos.left < 0){
           pos.left = 0;
         } else if(maxX <= pos.left){
-          pos.left = maxX - this.gridWpx;
+          pos.left = maxX - parseInt(this.gridWpx);
         }
         // keep width to fit
         if( pos.width === undefined){
@@ -493,7 +498,7 @@
         if( pos.top === undefined || pos.top < 0){
           pos.top = 0;
         } else if( maxY <= pos.top ){
-          pos.top = maxY - this.gridHpx;
+          pos.top = maxY - parseInt(this.gridHpx);
         }
         // keep height to fit
         if( pos.height === undefined ){
@@ -606,11 +611,10 @@
         l.forEach((t)=>{
           let j = this.tiles.indexOf(t);
           if(0 <= j){
-            l.splice(j,1);
+            this.tiles.splice(j,1);
           }
         });
       }, 500);
-
       return;
     },
     created: function(){
