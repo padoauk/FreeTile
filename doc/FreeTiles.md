@@ -1,4 +1,4 @@
-# FreeTile
+# FreeTiles
 ## Overview
 FreeTile is a layout framework on Vue.js. The main components of FreeTile
 are TileAera.vue and Tile.vue. On TileArea's region, each tile can be moved
