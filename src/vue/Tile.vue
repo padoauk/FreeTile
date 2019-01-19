@@ -116,12 +116,12 @@
         evt.stopPropagation();
         return;
       },
-      enableDrag: function(){
+      enableDrag: function(evt){
         this.canDrag = true;
         this.$emit('enableDrag');
         return;
       },
-      disableDrag: function(){
+      disableDrag: function(evt){
         this.canDrag = false;
         this.$emit('disableDrag');
         return;

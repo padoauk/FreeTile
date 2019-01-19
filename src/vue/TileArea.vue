@@ -49,6 +49,321 @@
     }
   });
 
+  const init_pos = {};
+  /**
+   * evaluate fitness between two points. 0 is perfect fit and smaller the better.
+   * @param {Object} posA
+   * @param {Number} posA.x
+   * @param {Number} posA.y
+   * @param {Number} posA.w
+   * @param {Number} posA.h
+   * @param {Object} posB
+   * @param {Number} posB.x
+   * @param {Number} posB.y
+   * @param {Number} posB.w
+   * @param {Number} posB.h
+   * @return {Number} fitness value
+   */
+  init_pos.calc_fitness = function(posA, posB){
+    return Math.abs(posA.x - posB.x) + Math.abs(posA.y - posB.y) +
+      1000 * (Math.abs(posA.w - posB.w) + Math.abs(posA.h - posB.h));
+  };
+
+  /**
+   * find best clear space
+   * @param {Number} x_req - left of the perfect space
+   * @param {Number} y_req - top of the perfect space
+   * @param {Number} w_req - w_req of the perfect space
+   * @param {Number} h_req - h_req of the perfect space
+   * @param {Number} areaW - number of grids in a row
+   * @param {Number} areaH - number of grids in a column
+   * @param {Function} calc_val
+   * @param {Number} calc_val(x,y) - find local best for (left,right) === (x,y)
+   * @returns {Object} best clear space
+   *          {Number} Object.x - left   of the best clear space
+   *          {Number} Object.y - top    of the best clear space
+   *          {Number} Object.w - w_req  of the best clear space
+   *          {Number} Object.h - h_req of the best clear space
+   */
+  init_pos.best_clear_space = function(x_req, y_req, w_req, h_req, areaW, areaH, calc_val){
+    /*
+    {
+      if (
+        x_req === undefined || y_req === undefined ||
+        areaW === undefined || areaH === undefined ||
+        typeof x_req !== 'number' || typeof y_req !== 'number' ||
+        typeof areaW !== 'number' || typeof areaH !== 'number' ||
+        x_req < 0 || y_req < 0 || areaW < 0 || areaH < 0 ||
+        calc_val === undefined
+      ) {
+        return null;
+      }
+    }
+    */
+
+    let max_distance = (x_req < y_req) ? y_req : x_req;
+    if( max_distance < areaW - x_req){
+      max_distance = areaW - x_req;
+    }
+    if( max_distance < areaH - y_req){
+      max_distance = areaH - y_req;
+    }
+
+    const posA = {'x':x_req, 'y': y_req, 'w': w_req, 'h': h_req};
+    let fitness = Number.MAX_VALUE;
+    let pos_best = null;
+
+    const proc = (x,y,d) => {
+      const v = calc_val(x,y);
+      let f = init_pos.calc_fitness(posA, v);
+      if(f < fitness){
+        fitness = f;
+        v.fitness = f;
+        pos_best = v;
+        if(fitness <= d){
+          return pos_best;
+        }
+      }
+    };
+
+    for(let d=0; d<max_distance; d++){
+      // scanning on top and bottom lines
+      const yarr = [];
+      const y0 = y_req - d; // top
+      const y1 = y_req + d; // bottom
+      if(0 <= y0)  { yarr.push(y0); }
+      if(y1<areaH) { yarr.push(y1); }
+
+      const xS = (0 <= x_req-d) ? x_req-d : 0;
+      const xE = (x_req+d < areaW) ? x_req+d : areaW - 1;
+      for(let x=xS; x<=xE; x++){
+        yarr.forEach((y)=>{
+          try{
+            proc(x,y,d);
+          }catch(e){
+            console.log(e.toString());
+          }
+        });
+      }
+
+      // scanning on left and right lines
+      const xarr = [];
+      const x0 = x_req - d; // left
+      const x1 = x_req + d; // right
+      if(0 <= x0)    { xarr.push(x0); }
+      if(x1 < areaW) { xarr.push(x1); }
+
+      const yS = (0 < y_req - d + 1) ? y_req - d + 1 : 0;
+      const yE = (y_req + d - 1 < areaW) ? y_req + d - 1 : areaW-1;
+      for(let y=yS; y<=yE; y++){
+        xarr.forEach((x)=>{
+          try{
+            proc(x,y,d);
+          } catch(e){
+            console.log(e.toString());
+          }
+        });
+      }
+    }
+
+    return pos_best;
+  };
+
+  /**
+   * find largest rectangle from (x0,y0) and smaller than (w_max, h_max) in grid area of size (areaW, areaH)
+   * @param {Number} x0 - left of the rectangle
+   * @param {Number} y0 - top of the rectangle
+   * @param {Number} w_max - max width of the rectangle
+   * @param {Number} h_max - max height of the rectangle
+   * @param {Number} areaW - grid area w_max
+   * @param {Number} areaH - grid area h_max
+   * @param {Array} isOccupied - flags of occupation in the area
+   * @param {Array} isOccupied[] - flags of occupation on the row
+   * @param {Array} isOccupied[c][r] - flag of occupation of grid at (x,y) = (r, c).
+   * @returns {Object}
+   */
+  init_pos.largest_rect = function(x0, y0, w_max, h_max, areaW, areaH, isOccupied){
+    /*
+    {
+      if (
+        x0 === undefined || y0 === undefined ||
+        w_max === undefined || h_max === undefined ||
+        areaW === undefined || areaH === undefined ||
+        typeof x0 !== 'number' || typeof y0 !== 'number' ||
+        typeof w_max !== 'number' || typeof h_max !== 'number' ||
+        typeof areaW !== 'number' || typeof areaH !== 'number' ||
+        x0 < 0 || y0 < 0 || w_max < 0 || h_max < 0 || areaW < 0 || areaH < 0 ||
+        isOccupied === undefined || !(isOccupied instanceof Array)
+      ) {
+        return null;
+      }
+    }
+    */
+    const max_d = (w_max < h_max) ? h_max : w_max;
+    let longest = -1; // max of w_max + h_max
+    let pos = {};
+    let oc = false; // whether or not to arrive at an occupied position
+
+    const proc = (x,y) => {
+      const l = Math.abs(x - x0) + Math.abs(y - y0);
+      if( longest < l ) {
+        pos = {'x':x0, 'y':y0, 'w':(x-x0+1), 'h': (y-y0+1)};
+        longest = l;
+      }
+    };
+
+    //  walking around route is
+    //     x0
+    //  y0 d0[0] d1[0] d2[0] d3[0] d4[0] ...
+    //     d1[1] d1[1] d2[1] d3[1] d4[1] ...
+    //     d2[2] d2[3] d2[4] d3[2] d4[2] ...
+    //     d3[3] d3[4] d3[5] d3[6] d4[3] ...
+    //     d4[4] d4[5] d4[6] d4[7] d4[8] ...
+    //     ...
+    for(let d=0; d<=max_d; d++){
+      let x,y,xE,yE;
+      // on (x0+d, [y0 .. yE])
+      x  = x0 + ((d<(w_max-1)) ? d : (w_max-1));
+      if(areaW <= x){
+        continue;
+      }
+      yE = y0 + ((d<(h_max-1))? d : (h_max-1));
+      if(areaH <= yE) {
+        yE = areaH - 1;
+      }
+      for(y=y0; y<yE; y++){
+        const f = isOccupied[y][x];
+        if(f !== true){
+          proc(x,y);
+        } else {
+          oc = true;
+          break;
+        }
+      }
+
+      // on ([x0 .. ye], y+d])
+      y  = y0 + ((d<(h_max-1))? d : (h_max-1));
+      if(areaH <= y)  {
+        continue;
+      }
+      xE = x0 + ((d<(w_max-1)) ? d : (w_max-1));
+      if(areaW <= xE) {
+        xE = areaW - 1;
+      }
+      for(x=x0; x<=xE; x++){
+        //console.log(`b (${x},${y}) x0:${x0}, xE:${xE}`);
+        const f = isOccupied[y][x];
+        if(f !== true){
+          proc(x,y);
+        } else {
+          oc = true;
+          break;
+        }
+      }
+      if(oc){
+        break;
+      }
+    }
+
+    return pos;
+  };
+
+  /**
+   * calculate list of flags whether each grid is occupied by an Tile.
+   * @param {Array} tiles - list of tiles
+   * @param {Object} tiles[].pos - position information of the tile
+   * @param {Number} tiles[].pos.left - left of the tile
+   * @param {Number} tiles[].pos.top  - top of the tile
+   * @param {Number} tiles[].pos.right - right of the tile
+   * @param {Number} tiles[].pos.bottom  - bottom of the tile
+   * @param {Object} gridInfo - grid info
+   * @param {Number} gridInfo.gridW - width  of a grid in px
+   * @param {Number} gridInfo.gridH - height of a grid in px
+   * @param {Number} gridInfo.gridColNum - number of grids in a row
+   * @param {Number} gridInfo.gridRowNum - number of grids in a col
+   * @return {Array} {Array[col][row] | 0 <= col < gridColNUm, 0 <= row < gridRowNum}
+   *                 is set of flags whether the grid is occupied or not
+   */
+  init_pos.occupiedGrids = function(tgtTile, tiles, gridInfo){
+    const gw = gridInfo.gridW;
+    const gh = gridInfo.gridH;
+    const gr = gridInfo.gridRowNum;
+    const gc = gridInfo.gridColNum;
+
+    // init return data isOccupiked[col][row] are flag of grid(x:row,y:col)
+    // where 0 <= col <  gc, 0 <= row < gr, as false (not occupied),
+    const isOccupied = Array(gc);
+    for(let i=0; i<gc; i++){
+      const a = Array(gr);
+      a.fill(false, 0, gr-1);
+      isOccupied[i] = a;
+    }
+
+    tiles.forEach((tile)=>{
+      if(tile.tileAreaId === tgtTile.tileAreaId){
+        return;
+      }
+      const rS = parseInt(tile.pos.left   / gw);
+      const cS = parseInt(tile.pos.top    / gh);
+      const rE = parseInt(tile.pos.right  / gw);
+      const cE = parseInt(tile.pos.bottom / gh);
+      for(let iy=cS; iy<cE; iy++){
+        for(let ix=rS; ix<rE; ix++){
+          isOccupied[iy][ix] = true;
+        }
+      }
+    });
+
+    return isOccupied;
+  };
+
+  /**
+   * find best clear space to place a tile
+   * @param {Number} x0 - requested (perfect) left in px
+   * @param {Number} y0 - requested (perfect) top in px
+   * @param {Number} width  - requested (perfect) width in px
+   * @param {Number} height - requested (perfect) height in px
+   * @param {Object} tile - tile to place
+   * @param {Array} tiles - existing tiles
+   * @param {Object} gridInfo - grid information
+   * @param {Number} gridInfo.gridW - width  of a grid in px
+   * @param {Number} gridInfo.gridH - height of a grid in px
+   * @param {Number} gridInfo.gridColNum - number of grids in a row
+   * @param {Number} gridInfo.gridRowNum - number of grids in a col
+   * @returns {Object} best clear space
+   *          {Number} Object.x - left of the space in px
+   *          {Number} Object.y - top of the space in px
+   *          {Number} Object.w - width  of the space in px
+   *          {Number} Object.h - height of the space in px
+   */
+  init_pos.find = function(x0, y0, width, height, tile, tiles, gridInfo){
+    const gridW = gridInfo.gridW;
+    const gridH = gridInfo.gridH;
+    const cols = parseInt(gridInfo.gridColNum);
+    const rows = parseInt(gridInfo.gridRowNum);
+    const wg = parseInt(parseInt(width) / gridW);
+    const hg = parseInt(parseInt(height)/ gridH);
+    const x0g = parseInt(x0 / gridW);
+    const y0g = parseInt(y0 / gridH);
+    const isOccupied = init_pos.occupiedGrids(tile, tiles, gridInfo);
+    const calc = (x,y) =>{
+      return init_pos.largest_rect(x, y, wg, hg, cols, rows, isOccupied);
+    };
+    const pos = init_pos.best_clear_space(x0g, y0g, wg, hg, cols, rows, calc);
+
+    if(pos == null){
+      return null;
+    }
+    return {
+      'left': (pos.x * gridW),
+      'top':  (pos.y * gridH),
+      'right':  ((pos.x+pos.w) * gridW),
+      'bottom': ((pos.y+pos.h) * gridH),
+      'width':  (pos.w * gridW),
+      'height': (pos.h * gridH)
+    };
+  };
+
   export default {
     name: "FreeTiles",
 
@@ -111,11 +426,27 @@
     },
     
     computed: {
+      // Number and integer guaranteed
+      gridW() {
+        return parseInt(this.gridWpx);
+      },
+      // Number and integer guaranteed
+      gridH() {
+        return parseInt(this.gridHpx);
+      },
+      // Number and integer guaranteed
+      numGridCol() {
+        return parseInt(this.gridColNum);
+      },
+      // Number and integer guaranteed
+      numGridRow() {
+        return parseInt(this.gridColNum);
+      },
       width() {
-        return parseInt(this.gridWpx) * parseInt(this.gridColNum);
+        return (this.gridW * this.numGridCol);
       },
       height() {
-        return parseInt(this.gridHpx) * parseInt(this.gridRowNum);
+        return (this.gridH * this.numGridRow);
       },
       styles() {
         return {
@@ -182,10 +513,10 @@
           return;
         }
 
-        const gw = parseInt(this.gridWpx);
-        const gh = parseInt(this.gridHpx);
-        const gc = parseInt(this.gridColNum);
-        const gr = parseInt(this.gridRowNum);
+        const gw = this.gridW;
+        const gh = this.gridH;
+        const gc = this.numGridCol;
+        const gr = this.numGridRow;
         // calculate colStart, colEnd, colSz, rowStart, rowEnd and rowSz
         const cst = parseInt( pos.left / gw ) + 1;
         const rst = parseInt( pos.top  / gh ) + 1;
@@ -324,7 +655,7 @@
             }
           }
           const left = this.dragging.x - this.dragging.dx;
-          const top  = this.dragging.y - this.dragging.dy - parseInt(this.gridHpx);
+          const top  = this.dragging.y - this.dragging.dy - this.gridH;
           this.place(tile, {left: left, top: top});
         }
 
@@ -477,14 +808,14 @@
       addTile: function(compName, pos, show){
         show = (show === undefined) ? true : show;
         // pos must fit inside of the TileArea
-        const maxX = parseInt(this.gridWpx) * parseInt(this.gridColNum);
-        const maxY = parseInt(this.gridHpx) * parseInt(this.gridRowNum);
+        const maxX = this.gridW * this.numGridCol;
+        const maxY = this.gridH * this.numGridRow;
         pos = (pos !== undefined) ? pos : {};
         // keep left to fit
         if( pos.left === undefined || pos.left < 0){
           pos.left = 0;
         } else if(maxX <= pos.left){
-          pos.left = maxX - parseInt(this.gridWpx);
+          pos.left = maxX - this.gridW;
         }
         // keep width to fit
         if( pos.width === undefined){
@@ -498,7 +829,7 @@
         if( pos.top === undefined || pos.top < 0){
           pos.top = 0;
         } else if( maxY <= pos.top ){
-          pos.top = maxY - parseInt(this.gridHpx);
+          pos.top = maxY - this.gridH;
         }
         // keep height to fit
         if( pos.height === undefined ){
@@ -519,19 +850,50 @@
         // height of the tile in px (including header, footer and body)
         o.ysz_px = pos.height;
         // position of the tile in px (including header, footer and body)
-        o.pos = {'left': pos.left, 'top': pos.top, 'right': (pos.left + o.xsz_px), 'bottom': (pos.top + o.ysz_px)};
+        o.pos = pos;
         // slot properties
         o.slot = { xsz_px: o.xsz_px, ysz_px: (o.ysz_px - 50) }; // 50 = tile's header.height + footer.height
 
         // component name
         o.component = compName;
 
+        if( this.hasOverlap(o, o.pos.left, o.pos.top, o.pos.right, o.pos.bottom) ){
+          o.pos = init_pos.find(
+            pos.left, pos.top, pos.width, pos.height,
+            o, this.tiles,
+            {
+              'gridW': this.gridW,
+              'gridH': this.gridH,
+              'gridColNum': this.numGridCol,
+              'gridRowNum': this.numGridRow
+            }
+          );
+
+          if(o.pos !== null){
+            const msg = [];
+            msg.push("changed place for request of");
+            msg.push(`(x:${pos.left},y:${pos.top})-(x:${pos.left + pos.width},y:${pos.top+pos.height})`);
+            msg.push("to");
+            msg.push(`(x:${o.pos.left},y:${o.pos.top})-(x:${o.pos.left + o.pos.width},y:${o.pos.top+o.pos.height})`);
+            console.warn(msg.join(' '));
+          }
+        }
+
+        if(o.pos === null){
+          const msg = [];
+          msg.push("no free space for request of");
+          msg.push(`(x:${pos.left},y:${pos.top})-(x:${pos.left + pos.width},y:${pos.top+pos.height})`);
+          console.warn(msg.join(' '));
+          return;
+        }
+        
         this.tiles.push(o);
+        const pc = Object.assign({}, o.pos);
 
         // wait for tileId to be set
         const intid = setInterval(()=>{
           if(o.tileId){
-            this.place(o, pos);
+            this.place(o, pc);
             clearInterval(intid);
           }
         }, 1);
