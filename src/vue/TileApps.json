@@ -1,3 +1,4 @@
 [
-  {"name": "TextMsg", "path":  "./sample_components"}
+  {"name": "App01", "path":  "./components"},
+  {"name": "TextMsg", "path":  "./components"}
 ]

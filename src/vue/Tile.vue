@@ -83,12 +83,6 @@
     },
     computed: {
       headerTitle: function(){
-        if(this.myAreaId === undefined){
-          this.myAreaId = this.tileAreaId;
-        }
-        if( this.title.length == 0 ){
-          return "header " + this.myAreaId;
-        }
         return this.title;
       },
       slotStyles: function(){

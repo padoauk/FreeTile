@@ -18,6 +18,7 @@
                v-on:delTile="delTile"
                v-bind:showTile="tile.show"
                v-bind:tileAreaId="tile.tileAreaId"
+               v-bind:title="tile.name"
                v-bind:width="tile.xsz_px" v-bind:height="tile.ysz_px"
                v-bind:gridWpx="gridWpx" v-bind:gridHpx="gridHpx"
                v-bind:tileSzCheck="tileSzCheck"
@@ -25,6 +26,7 @@
       <div>
         <component v-bind:is="tile.component"
                    v-bind:tileAreaId="tile.tileAreaId" v-bind:width="tile.slot.xsz_px" v-bind:height="tile.slot.ysz_px"
+                   v-on:setTileName="setTileName"
                    v-on:szChanged="szChanged">
         </component>
       </div>
@@ -845,6 +847,8 @@
         o.tileAreaId = ++this.lastTileId;
         // id defined in each Tile
         o.tileId = null;
+        // initial name is thileAreaId
+        o.name = String(o.tileAreaId);
         // width of the tile in px (including header, footer and body)
         o.xsz_px = pos.width;
         // height of the tile in px (including header, footer and body)
@@ -949,6 +953,18 @@
         this.setTilePos(tgt, w, h);
 
         return;
+      },
+      setTileName: function(o){
+        if(o === undefined || o.tileAreaId === undefined || o.name === undefined){
+          console.log("Woops! no tileAreaId or no name");
+          return;
+        }
+        const tile = this.findTileByAreaId(o.tileAreaId);
+        if(tile == null){
+          console.log("Woops! TileArea does not know " + o.tileAreaId);
+          return;
+        }
+        tile.name = o.name;
       }
     },
     mounted: function (){
