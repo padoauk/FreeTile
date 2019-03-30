@@ -23,13 +23,15 @@
                v-bind:gridWpx="gridWpx" v-bind:gridHpx="gridHpx"
                v-bind:tileSzCheck="tileSzCheck"
                v-bind:style="defaultTileStyle">
-      <div>
+      <!-- slot -->
+      <div slot="body-app">
         <component v-bind:is="tile.component"
                    v-bind:tileAreaId="tile.tileAreaId" v-bind:width="tile.slot.xsz_px" v-bind:height="tile.slot.ysz_px"
                    v-on:setTileName="setTileName"
                    v-on:szChanged="szChanged">
         </component>
       </div>
+      <!-- end of slot -->
     </component>
   </div>
 
@@ -656,8 +658,8 @@
               break;
             }
           }
-          const left = this.dragging.x - this.dragging.dx;
-          const top  = this.dragging.y - this.dragging.dy - this.gridH;
+          const left = this.dragging.x - this.dragging.dx - this.geo.abs.left;
+          const top  = this.dragging.y - this.dragging.dy - this.geo.abs.top;
           this.place(tile, {left: left, top: top});
         }
 
